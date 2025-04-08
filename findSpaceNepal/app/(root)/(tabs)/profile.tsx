@@ -36,7 +36,7 @@ const SettingsItems = ({
         {title}
       </Text>
     </View>
-    {showArrow && <Image source={icons.rightArrow} className="sie-5" />}
+    {showArrow && <Image source={icons.rightArrow} className="size-5" />}
   </TouchableOpacity>
 );
 
@@ -74,6 +74,16 @@ const Profile = () => {
             {settings.slice(2).map((item, index) => (
               <SettingsItems key={index} {...item} />
             ))}
+          </View>
+
+          <View className="flex flex-col mt-5 border-t pt-5 border-primary-200">
+            <SettingsItems
+              icon={icons.logout}
+              title="Logout"
+              textStyle="color-danger"
+              showArrow={false}
+              onPress={handleLogOut}
+            />
           </View>
         </View>
       </ScrollView>
