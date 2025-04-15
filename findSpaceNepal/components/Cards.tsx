@@ -4,10 +4,11 @@ import images from "@/constants/images";
 import icons from "@/constants/icons";
 
 interface Props {
+  item: "";
   onPress?: () => void;
 }
 
-export const FeaturedCard = ({ onPress }: Props) => {
+export const FeaturedCard = ({ item, onPress }: Props) => {
   return (
     <TouchableOpacity
       onPress={onPress}
@@ -46,7 +47,7 @@ export const FeaturedCard = ({ onPress }: Props) => {
   );
 };
 
-export const Card = ({ onPress }: Props) => {
+export const Card = ({ item, onPress }: Props) => {
   return (
     <TouchableOpacity
       onPress={onPress}
