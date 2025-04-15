@@ -1,10 +1,12 @@
 import { Card, FeaturedCard } from "@/components/Cards";
 import Filters from "@/components/Filters";
+import NoResults from "@/components/NoResults";
 import Search from "@/components/Search";
 import icons from "@/constants/icons";
 import images from "@/constants/images";
 import { router } from "expo-router";
 import {
+  ActivityIndicator,
   FlatList,
   Image,
   SafeAreaView,
@@ -28,6 +30,7 @@ export default function Index() {
     { id: "3" },
     { id: "4" },
   ];
+  const loading = false;
 
   const featuredProperties: Property[] = [
     { id: "4" },
@@ -48,6 +51,13 @@ export default function Index() {
         contentContainerClassName="pb-32"
         columnWrapperClassName="flex gap-5 px-5"
         showsVerticalScrollIndicator={false}
+        ListEmptyComponent={
+          loading ? (
+            <ActivityIndicator size="large" className="text-primary-300 mt-5" />
+          ) : (
+            <NoResults />
+          )
+        }
         ListHeaderComponent={
           <View className="px-5">
             <View className="flex flex-row items-center justify-between mt-5">
