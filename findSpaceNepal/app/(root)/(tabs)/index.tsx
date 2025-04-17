@@ -39,6 +39,15 @@ export default function Index() {
     { id: "7" },
   ];
 
+  const featuredPropertiesLoading = false;
+
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour < 12) return "Good Morning";
+    if (hour < 18) return "Good Afternoon";
+    return "Good Evening";
+  };
+
   return (
     <SafeAreaView className="bg-white h-full">
       <FlatList
@@ -68,7 +77,7 @@ export default function Index() {
                 />
                 <View className="flex flex-col items-start ml-2 justify-center">
                   <Text className="text-xs font-rubik text-black-100">
-                    Good Morning
+                    {getGreeting()}
                   </Text>
                   <Text className="text-base font-rubik-medium text-black-300">
                     Saroj Adihkari
@@ -89,32 +98,43 @@ export default function Index() {
                   </Text>
                 </TouchableOpacity>
               </View>
-              <FlatList
-                data={featuredProperties}
-                renderItem={({ item }) => (
-                  <FeaturedCard
-                    item={item}
-                    onPress={() => handleCardPress(item.id)}
-                  />
-                )}
-                keyExtractor={(item) => item.id}
-                horizontal
-                bounces={false}
-                showsHorizontalScrollIndicator={false}
-                contentContainerClassName="flex gap-5 mt-5"
-              />
+              {featuredPropertiesLoading ? (
+                <ActivityIndicator
+                  size={"large"}
+                  className="text-primary-300"
+                />
+              ) : featuredProperties.length === 0 ? (
+                <NoResults />
+              ) : (
+                <FlatList
+                  data={featuredProperties}
+                  renderItem={({ item }) => (
+                    <FeaturedCard
+                      item={item}
+                      onPress={() => handleCardPress(item.id)}
+                    />
+                  )}
+                  keyExtractor={(item) => item.id}
+                  horizontal
+                  bounces={false}
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerClassName="flex gap-5 mt-5"
+                />
+              )}
             </View>
-            <View className="flex flex-row items-center justify-between">
-              <Text className="text-xl font-rubik-bold text-black-300">
-                Our Recommendations
-              </Text>
-              <TouchableOpacity>
-                <Text className="text-base font-rubik-bold text-primary-300">
-                  See All
+            <View className="mt-5">
+              <View className="flex flex-row items-center justify-between">
+                <Text className="text-xl font-rubik-bold text-black-300">
+                  Our Recommendations
                 </Text>
-              </TouchableOpacity>
+                <TouchableOpacity>
+                  <Text className="text-base font-rubik-bold text-primary-300">
+                    See All
+                  </Text>
+                </TouchableOpacity>
+              </View>
+              <Filters />
             </View>
-            <Filters />
           </View>
         }
       />
