@@ -6,23 +6,28 @@ import {
   ScrollView,
   Image,
   TouchableOpacity,
-  ImageSourcePropType,
-  Platform,
   TextInput,
-  StyleSheet,
   KeyboardAvoidingView,
+  Platform,
 } from "react-native";
-import images from "@/constants/images";
 import icons from "@/constants/icons";
+import images from "@/constants/images";
 import { useGoogleAuth } from "@/lib/Oauth";
 import Constants from "expo-constants";
 import { Link } from "expo-router";
 
-const SignIn = () => {
-  // Form state
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+const SignUp = () => {
+  const [form, setForm] = useState({
+    fullName: "",
+    email: "",
+    password: "",
+    confirmPassword: "",
+  });
+
+  console.log(form);
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
+  const [isConfirmPasswordVisible, setIsConfirmPasswordVisible] =
+    useState(false);
 
   // Google auth
   const { googleClientIdWeb, googleClientIdAndroid, googleClientIdIos } =
@@ -34,17 +39,17 @@ const SignIn = () => {
     iosClientId: googleClientIdIos || "",
   };
 
-  const { userInfo, loginWithGoogle, request, isLoading, error } =
+  const { loginWithGoogle, request, isLoading, error } =
     useGoogleAuth(clientIds);
 
-  const handleLogin = () => {
-    if (!request) return;
-    loginWithGoogle();
+  const handleSignUp = () => {
+    // Handle signup logic here
+    console.log("Signing up with:", form);
   };
 
-  const handleEmailLogin = () => {
-    // Handle email/password login logic here
-    console.log("Logging in with:", email, password);
+  const handleGoogleSignUp = () => {
+    if (!request) return;
+    loginWithGoogle();
   };
 
   return (
@@ -54,21 +59,25 @@ const SignIn = () => {
         className="flex-1"
       >
         <ScrollView
-          contentContainerStyle={styles.scrollContainer}
+          contentContainerStyle={{
+            flexGrow: 1,
+            paddingHorizontal: 24,
+            paddingVertical: 40,
+          }}
           keyboardShouldPersistTaps="handled"
         >
-          {/* Logo and Welcome Section */}
+          {/* Header Section */}
           <View className="items-center mb-8">
             <Image
               source={images.logo as ImageSourcePropType}
-              className="w-35 h-32 mb-4"
+              className="w-35 h-32  mb-4"
               resizeMode="contain"
             />
             <Text className="text-2xl font-rubik-bold text-primary-500">
-              Welcome Back
+              Create Account
             </Text>
             <Text className="text-gray-600 font-rubik mt-2">
-              Login to your FindSpaceNepal account
+              Join FindSpaceNepal today
             </Text>
           </View>
 
@@ -80,6 +89,27 @@ const SignIn = () => {
               </Text>
             </View>
           )}
+
+          {/* Full Name Input */}
+          <View className="mb-4">
+            <Text className="text-gray-700 font-rubik-medium mb-2">
+              Full Name
+            </Text>
+            <View className="flex-row items-center border border-gray-300 rounded-xl px-4 py-3">
+              <Image
+                source={icons.user as ImageSourcePropType}
+                className="w-5 h-5 mr-2"
+                resizeMode="contain"
+              />
+              <TextInput
+                placeholder="Enter your full name"
+                className="flex-1 font-rubik text-gray-800"
+                value={form.fullName}
+                onChangeText={(text) => setForm({ ...form, fullName: text })}
+                autoCapitalize="words"
+              />
+            </View>
+          </View>
 
           {/* Email Input */}
           <View className="mb-4">
@@ -93,8 +123,8 @@ const SignIn = () => {
               <TextInput
                 placeholder="Enter your email"
                 className="flex-1 font-rubik text-gray-800"
-                value={email}
-                onChangeText={setEmail}
+                value={form.email}
+                onChangeText={(text) => setForm({ ...form, email: text })}
                 keyboardType="email-address"
                 autoCapitalize="none"
               />
@@ -102,7 +132,7 @@ const SignIn = () => {
           </View>
 
           {/* Password Input */}
-          <View className="mb-6">
+          <View className="mb-4">
             <Text className="text-gray-700 font-rubik-medium mb-2">
               Password
             </Text>
@@ -113,10 +143,10 @@ const SignIn = () => {
                 resizeMode="contain"
               />
               <TextInput
-                placeholder="Enter your password"
+                placeholder="Create password"
                 className="flex-1 font-rubik text-gray-800"
-                value={password}
-                onChangeText={setPassword}
+                value={form.password}
+                onChangeText={(text) => setForm({ ...form, password: text })}
                 secureTextEntry={!isPasswordVisible}
               />
               <TouchableOpacity
@@ -133,22 +163,57 @@ const SignIn = () => {
                 />
               </TouchableOpacity>
             </View>
-            <TouchableOpacity className="self-end mt-2">
-              <Text className="text-primary-500 font-rubik-medium">
-                Forgot Password?
-              </Text>
-            </TouchableOpacity>
           </View>
 
-          {/* Login Button */}
+          {/* Confirm Password Input */}
+          <View className="mb-6">
+            <Text className="text-gray-700 font-rubik-medium mb-2">
+              Confirm Password
+            </Text>
+            <View className="flex-row items-center border border-gray-300 rounded-xl px-4 py-3">
+              <Image
+                source={icons.lock as ImageSourcePropType}
+                className="w-5 h-5 mr-2"
+                resizeMode="contain"
+              />
+              <TextInput
+                placeholder="Confirm your password"
+                className="flex-1 font-rubik text-gray-800"
+                value={form.confirmPassword}
+                onChangeText={(text) =>
+                  setForm({ ...form, confirmPassword: text })
+                }
+                secureTextEntry={!isConfirmPasswordVisible}
+              />
+              <TouchableOpacity
+                onPress={() =>
+                  setIsConfirmPasswordVisible(!isConfirmPasswordVisible)
+                }
+              >
+                <Image
+                  source={
+                    isConfirmPasswordVisible
+                      ? (icons.eyeOff as ImageSourcePropType)
+                      : (icons.eye as ImageSourcePropType)
+                  }
+                  className="w-5 h-5"
+                  resizeMode="contain"
+                />
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          {/* Sign Up Button */}
           <TouchableOpacity
-            onPress={handleEmailLogin}
-            className="flex flex-row bg-white rounded-xl py-4 mb-4 items-center justify-center shadow-lg border border-gray-300"
+            onPress={handleSignUp}
+            className="bg-white rounded-xl py-4 mb-4 items-center justify-center shadow-lg"
             activeOpacity={0.8}
           >
-            <Text className="text-black-700 font-rubik-bold text-lg ">
-              {isLoading ? "Signing In..." : "Sign In"}
-            </Text>
+            <View className="flex-row justify-center items-center">
+              <Text className="text-black-700 font-rubik-bold text-lg">
+                {isLoading ? "Creating Account..." : "Sign Up"}
+              </Text>
+            </View>
           </TouchableOpacity>
 
           {/* Divider */}
@@ -158,9 +223,9 @@ const SignIn = () => {
             <View className="flex-1 h-px bg-gray-300" />
           </View>
 
-          {/* Google Login */}
+          {/* Google Sign Up */}
           <TouchableOpacity
-            onPress={handleLogin}
+            onPress={handleGoogleSignUp}
             disabled={!request || isLoading}
             className={`flex-row items-center justify-center border border-gray-300 rounded-xl py-3 mb-6 ${
               isLoading ? "opacity-50" : ""
@@ -177,16 +242,14 @@ const SignIn = () => {
             </Text>
           </TouchableOpacity>
 
-          {/* Sign Up Link */}
+          {/* Login Link */}
           <View className="flex-row justify-center">
             <Text className="text-gray-600 font-rubik">
-              Don't have an account?{" "}
+              Already have an account?{" "}
             </Text>
-            <Link href={"/SignUp"} asChild>
+            <Link href={"/sign-in"} asChild>
               <TouchableOpacity>
-                <Text className="text-primary-500 font-rubik-bold">
-                  Sign Up
-                </Text>
+                <Text className="text-primary-500 font-rubik-bold">Login</Text>
               </TouchableOpacity>
             </Link>
           </View>
@@ -196,13 +259,4 @@ const SignIn = () => {
   );
 };
 
-const styles = StyleSheet.create({
-  scrollContainer: {
-    flexGrow: 1,
-    paddingHorizontal: 24,
-    paddingVertical: 40,
-    justifyContent: "center",
-  },
-});
-
-export default SignIn;
+export default SignUp;
