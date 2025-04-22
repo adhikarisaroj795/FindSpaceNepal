@@ -14,7 +14,7 @@ import icons from "@/constants/icons";
 import images from "@/constants/images";
 import { useGoogleAuth } from "@/lib/Oauth";
 import Constants from "expo-constants";
-import { Link } from "expo-router";
+import { Link, router } from "expo-router";
 
 const SignUp = () => {
   const [form, setForm] = useState({
@@ -247,11 +247,10 @@ const SignUp = () => {
             <Text className="text-gray-600 font-rubik">
               Already have an account?{" "}
             </Text>
-            <Link href={"/sign-in"} asChild>
-              <TouchableOpacity>
-                <Text className="text-primary-500 font-rubik-bold">Login</Text>
-              </TouchableOpacity>
-            </Link>
+
+            <TouchableOpacity onPress={() => router.back()}>
+              <Text className="text-primary-500 font-rubik-bold">Login</Text>
+            </TouchableOpacity>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
