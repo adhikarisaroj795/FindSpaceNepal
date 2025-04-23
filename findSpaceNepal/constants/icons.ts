@@ -31,9 +31,14 @@ import swim from "@/assets/icons/swim.png";
 import wifi from "@/assets/icons/wifi.png";
 import location from "@/assets/icons/location.png";
 import edit from "@/assets/icons/edit.png";
+import lock from "@/assets/icons/lock.png";
+import email from "@/assets/icons/email.png";
+import eye from "@/assets/icons/eye.png";
+import eyeOff from "@/assets/icons/eyeOff.png";
 
 export default {
   google,
+  eyeOff,
   home,
   search,
   person,
@@ -66,4 +71,7 @@ export default {
   wifi,
   location,
   edit,
+  lock,
+  email,
+  eye,
 };

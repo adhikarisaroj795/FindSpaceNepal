@@ -11,6 +11,16 @@ const sendToken = (user, statusCode, res, message) => {
     expires: expireDate,
     httpOnly: true,
     samSite: "Lax",
-    secure: isProduction, 
+    secure: isProduction,
   };
+
+  const { password, ...rest } = user._doc;
+  res.status(statusCode).cookie("token", token, options).json({
+    staus: true,
+    token,
+    user: rest,
+    msg: message,
+  });
 };
+
+module.exports = sendToken;

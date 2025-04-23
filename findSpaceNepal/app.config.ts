@@ -17,6 +17,9 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     bundleIdentifier: "com.saroj3921.findSpaceNepal",
     infoPlist: {
       ITSAppUsesNonExemptEncryption: false,
+      NSAppTransportSecurity: {
+        NSAllowsArbitraryLoads: true, // Add this for iOS to allow HTTP
+      },
     },
   },
   android: {
@@ -25,6 +28,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       backgroundColor: "#ffffff",
     },
     package: "com.saroj3921.findSpaceNepal",
+    usesCleartextTraffic: true, // This allows HTTP requests
   },
   web: {
     bundler: "metro",

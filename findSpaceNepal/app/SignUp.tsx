@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useCallback } from "react";
 import {
   View,
   Text,
@@ -9,27 +9,59 @@ import {
   TextInput,
   KeyboardAvoidingView,
   Platform,
+  ActivityIndicator,
+  Alert,
 } from "react-native";
 import icons from "@/constants/icons";
 import images from "@/constants/images";
 import { useGoogleAuth } from "@/lib/Oauth";
 import Constants from "expo-constants";
-import { Link, router } from "expo-router";
+import { router } from "expo-router";
+import { signUpRoute } from "../lib/APIRoutes";
+import { validateEmail, validatePassword } from "@/lib/validators";
+
+// Type definitions
+type FormField = "fullName" | "email" | "password" | "confirmPassword";
+
+interface FormState {
+  fullName: string;
+  email: string;
+  password: string;
+  confirmPassword: string;
+}
+
+interface FieldError {
+  field: FormField;
+  message: string;
+}
+
+interface ApiError extends Error {
+  response?: {
+    status: number;
+    data: {
+      message?: string;
+      errors?: Record<string, string[]>;
+    };
+  };
+}
 
 const SignUp = () => {
-  const [form, setForm] = useState({
+  // Form state
+  const [form, setForm] = useState<FormState>({
     fullName: "",
     email: "",
     password: "",
     confirmPassword: "",
   });
 
-  console.log(form);
+  // UI state
+  const [fieldErrors, setFieldErrors] = useState<FieldError[]>([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
   const [isConfirmPasswordVisible, setIsConfirmPasswordVisible] =
     useState(false);
 
-  // Google auth
+  // Google Auth configuration
   const { googleClientIdWeb, googleClientIdAndroid, googleClientIdIos } =
     Constants.expoConfig?.extra || {};
 
@@ -39,18 +71,181 @@ const SignUp = () => {
     iosClientId: googleClientIdIos || "",
   };
 
-  const { loginWithGoogle, request, isLoading, error } =
-    useGoogleAuth(clientIds);
+  const {
+    loginWithGoogle,
+    request,
+    isLoading: googleLoading,
+  } = useGoogleAuth(clientIds);
 
-  const handleSignUp = () => {
-    // Handle signup logic here
-    console.log("Signing up with:", form);
-  };
+  // Field validation
+  const validateField = useCallback(
+    (field: FormField, value: string): boolean => {
+      const errors = fieldErrors.filter((err) => err.field !== field);
+      let isValid = true;
 
-  const handleGoogleSignUp = () => {
-    if (!request) return;
-    loginWithGoogle();
-  };
+      if (!value.trim()) {
+        errors.push({ field, message: "This field is required" });
+        isValid = false;
+      } else {
+        switch (field) {
+          case "email":
+            if (!validateEmail(value)) {
+              errors.push({ field, message: "Please enter a valid email" });
+              isValid = false;
+            }
+            break;
+          case "password":
+            const passwordValidation = validatePassword(value);
+            if (!passwordValidation.isValid) {
+              errors.push({ field, message: passwordValidation.message });
+              isValid = false;
+            }
+            break;
+          case "confirmPassword":
+            if (value !== form.password) {
+              errors.push({ field, message: "Passwords don't match" });
+              isValid = false;
+            }
+            break;
+        }
+      }
+
+      setFieldErrors(errors);
+      return isValid;
+    },
+    [fieldErrors, form.password]
+  );
+
+  // Form validation
+  const validateForm = useCallback((): boolean => {
+    let isValid = true;
+    const fields: FormField[] = [
+      "fullName",
+      "email",
+      "password",
+      "confirmPassword",
+    ];
+
+    fields.forEach((field) => {
+      if (!validateField(field, form[field])) {
+        isValid = false;
+      }
+    });
+
+    return isValid;
+  }, [form, validateField]);
+
+  // Handle form field changes
+  const handleChange = useCallback(
+    (field: FormField, value: string) => {
+      setForm((prev) => ({ ...prev, [field]: value }));
+
+      // Validate field if it has an error
+      if (fieldErrors.some((err) => err.field === field)) {
+        validateField(field, value);
+      }
+    },
+    [fieldErrors, validateField]
+  );
+
+  // Handle form submission
+  const handleSignUp = useCallback(async () => {
+    if (isSubmitting) return;
+    if (!validateForm()) return;
+
+    setIsSubmitting(true);
+
+    try {
+      const response = await fetch(signUpRoute, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
+        body: JSON.stringify({
+          name: form.fullName,
+          email: form.email,
+          password: form.password,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw {
+          message: data.message || "Registration failed",
+          response: {
+            status: response.status,
+            data,
+          },
+        };
+      }
+
+      // Success - navigate to sign in with success message
+      router.push({
+        pathname: "/sign-in",
+        params: { registrationSuccess: "true" },
+      });
+    } catch (err) {
+      const error = err as ApiError;
+      let errorMessage = "An error occurred during registration";
+
+      if (error.message) {
+        if (error.message.includes("Network request failed")) {
+          errorMessage =
+            "Cannot connect to server. Check your internet connection.";
+        } else if (error.message.includes("Failed to fetch")) {
+          errorMessage = "Server unavailable. Please try again later.";
+        } else {
+          errorMessage = error.message;
+        }
+      } else if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      } else if (error.response?.data?.errors) {
+        // Handle field-specific errors from API
+        const apiErrors = error.response.data.errors;
+        const newFieldErrors: FieldError[] = [];
+
+        Object.entries(apiErrors).forEach(([field, messages]) => {
+          if (messages.length > 0) {
+            newFieldErrors.push({
+              field: field as FormField,
+              message: messages[0],
+            });
+          }
+        });
+
+        setFieldErrors(newFieldErrors);
+        errorMessage = "Please fix the errors in the form";
+      }
+
+      Alert.alert("Error", errorMessage);
+    } finally {
+      setIsSubmitting(false);
+    }
+  }, [form, isSubmitting, validateForm]);
+
+  // Handle Google sign up
+  const handleGoogleSignUp = useCallback(async () => {
+    if (!request || isSubmitting) return;
+
+    try {
+      setIsSubmitting(true);
+      await loginWithGoogle();
+    } catch (err) {
+      Alert.alert("Error", "Google sign up failed. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  }, [loginWithGoogle, request, isSubmitting]);
+
+  // Get error for a specific field
+  const getFieldError = useCallback(
+    (field: FormField): string | undefined => {
+      return fieldErrors.find((err) => err.field === field)?.message;
+    },
+    [fieldErrors]
+  );
 
   return (
     <SafeAreaView className="flex-1 bg-white">
@@ -65,13 +260,15 @@ const SignUp = () => {
             paddingVertical: 40,
           }}
           keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
         >
           {/* Header Section */}
           <View className="items-center mb-8">
             <Image
-              source={images.logo as ImageSourcePropType}
-              className="w-35 h-32  mb-4"
+              source={images.logo}
+              className="w-35 h-32 mb-4"
               resizeMode="contain"
+              accessibilityLabel="App Logo"
             />
             <Text className="text-2xl font-rubik-bold text-primary-500">
               Create Account
@@ -81,54 +278,78 @@ const SignUp = () => {
             </Text>
           </View>
 
-          {/* Error Message */}
-          {error && (
-            <View className="bg-red-100 p-3 rounded-lg mb-4">
-              <Text className="text-red-600 text-center font-rubik">
-                {error.message}
-              </Text>
-            </View>
-          )}
-
           {/* Full Name Input */}
           <View className="mb-4">
             <Text className="text-gray-700 font-rubik-medium mb-2">
               Full Name
             </Text>
-            <View className="flex-row items-center border border-gray-300 rounded-xl px-4 py-3">
+            <View
+              className={`flex-row items-center border rounded-xl px-4 py-3 ${
+                getFieldError("fullName")
+                  ? "border-red-500 bg-red-50"
+                  : "border-gray-300"
+              }`}
+            >
               <Image
-                source={icons.user as ImageSourcePropType}
+                source={icons.person}
                 className="w-5 h-5 mr-2"
                 resizeMode="contain"
+                accessibilityIgnoresInvertColors
               />
               <TextInput
                 placeholder="Enter your full name"
                 className="flex-1 font-rubik text-gray-800"
                 value={form.fullName}
-                onChangeText={(text) => setForm({ ...form, fullName: text })}
+                onChangeText={(text) => handleChange("fullName", text)}
+                onBlur={() => validateField("fullName", form.fullName)}
                 autoCapitalize="words"
+                maxLength={50}
+                accessibilityLabel="Full Name Input"
+                accessibilityHint="Enter your full name"
               />
             </View>
+            {getFieldError("fullName") && (
+              <Text className="text-red-500 text-xs mt-1 font-rubik">
+                {getFieldError("fullName")}
+              </Text>
+            )}
           </View>
 
           {/* Email Input */}
           <View className="mb-4">
             <Text className="text-gray-700 font-rubik-medium mb-2">Email</Text>
-            <View className="flex-row items-center border border-gray-300 rounded-xl px-4 py-3">
+            <View
+              className={`flex-row items-center border rounded-xl px-4 py-3 ${
+                getFieldError("email")
+                  ? "border-red-500 bg-red-50"
+                  : "border-gray-300"
+              }`}
+            >
               <Image
-                source={icons.email as ImageSourcePropType}
+                source={icons.email}
                 className="w-5 h-5 mr-2"
                 resizeMode="contain"
+                accessibilityIgnoresInvertColors
               />
               <TextInput
                 placeholder="Enter your email"
                 className="flex-1 font-rubik text-gray-800"
                 value={form.email}
-                onChangeText={(text) => setForm({ ...form, email: text })}
+                onChangeText={(text) => handleChange("email", text)}
+                onBlur={() => validateField("email", form.email)}
                 keyboardType="email-address"
                 autoCapitalize="none"
+                autoCorrect={false}
+                textContentType="emailAddress"
+                accessibilityLabel="Email Input"
+                accessibilityHint="Enter your email address"
               />
             </View>
+            {getFieldError("email") && (
+              <Text className="text-red-500 text-xs mt-1 font-rubik">
+                {getFieldError("email")}
+              </Text>
+            )}
           </View>
 
           {/* Password Input */}
@@ -136,33 +357,49 @@ const SignUp = () => {
             <Text className="text-gray-700 font-rubik-medium mb-2">
               Password
             </Text>
-            <View className="flex-row items-center border border-gray-300 rounded-xl px-4 py-3">
+            <View
+              className={`flex-row items-center border rounded-xl px-4 py-3 ${
+                getFieldError("password")
+                  ? "border-red-500 bg-red-50"
+                  : "border-gray-300"
+              }`}
+            >
               <Image
-                source={icons.lock as ImageSourcePropType}
+                source={icons.lock}
                 className="w-5 h-5 mr-2"
                 resizeMode="contain"
+                accessibilityIgnoresInvertColors
               />
               <TextInput
-                placeholder="Create password"
+                placeholder="(min 8 characters)"
                 className="flex-1 font-rubik text-gray-800"
                 value={form.password}
-                onChangeText={(text) => setForm({ ...form, password: text })}
+                onChangeText={(text) => handleChange("password", text)}
+                onBlur={() => validateField("password", form.password)}
                 secureTextEntry={!isPasswordVisible}
+                textContentType="newPassword"
+                accessibilityLabel="Password Input"
+                accessibilityHint="Create a password with at least 8 characters"
               />
               <TouchableOpacity
                 onPress={() => setIsPasswordVisible(!isPasswordVisible)}
+                accessibilityLabel={
+                  isPasswordVisible ? "Hide password" : "Show password"
+                }
               >
                 <Image
-                  source={
-                    isPasswordVisible
-                      ? (icons.eyeOff as ImageSourcePropType)
-                      : (icons.eye as ImageSourcePropType)
-                  }
+                  source={isPasswordVisible ? icons.eyeOff : icons.eye}
                   className="w-5 h-5"
                   resizeMode="contain"
+                  accessibilityIgnoresInvertColors
                 />
               </TouchableOpacity>
             </View>
+            {getFieldError("password") && (
+              <Text className="text-red-500 text-xs mt-1 font-rubik">
+                {getFieldError("password")}
+              </Text>
+            )}
           </View>
 
           {/* Confirm Password Input */}
@@ -170,50 +407,75 @@ const SignUp = () => {
             <Text className="text-gray-700 font-rubik-medium mb-2">
               Confirm Password
             </Text>
-            <View className="flex-row items-center border border-gray-300 rounded-xl px-4 py-3">
+            <View
+              className={`flex-row items-center border rounded-xl px-4 py-3 ${
+                getFieldError("confirmPassword")
+                  ? "border-red-500 bg-red-50"
+                  : "border-gray-300"
+              }`}
+            >
               <Image
-                source={icons.lock as ImageSourcePropType}
+                source={icons.lock}
                 className="w-5 h-5 mr-2"
                 resizeMode="contain"
+                accessibilityIgnoresInvertColors
               />
               <TextInput
                 placeholder="Confirm your password"
                 className="flex-1 font-rubik text-gray-800"
                 value={form.confirmPassword}
-                onChangeText={(text) =>
-                  setForm({ ...form, confirmPassword: text })
+                onChangeText={(text) => handleChange("confirmPassword", text)}
+                onBlur={() =>
+                  validateField("confirmPassword", form.confirmPassword)
                 }
                 secureTextEntry={!isConfirmPasswordVisible}
+                textContentType="newPassword"
+                onSubmitEditing={handleSignUp}
+                accessibilityLabel="Confirm Password Input"
+                accessibilityHint="Re-enter your password"
               />
               <TouchableOpacity
                 onPress={() =>
                   setIsConfirmPasswordVisible(!isConfirmPasswordVisible)
                 }
+                accessibilityLabel={
+                  isConfirmPasswordVisible ? "Hide password" : "Show password"
+                }
               >
                 <Image
-                  source={
-                    isConfirmPasswordVisible
-                      ? (icons.eyeOff as ImageSourcePropType)
-                      : (icons.eye as ImageSourcePropType)
-                  }
+                  source={isConfirmPasswordVisible ? icons.eyeOff : icons.eye}
                   className="w-5 h-5"
                   resizeMode="contain"
+                  accessibilityIgnoresInvertColors
                 />
               </TouchableOpacity>
             </View>
+            {getFieldError("confirmPassword") && (
+              <Text className="text-red-500 text-xs mt-1 font-rubik">
+                {getFieldError("confirmPassword")}
+              </Text>
+            )}
           </View>
 
           {/* Sign Up Button */}
           <TouchableOpacity
             onPress={handleSignUp}
-            className="bg-white rounded-xl py-4 mb-4 items-center justify-center shadow-lg"
+            disabled={isSubmitting}
+            className={`bg-primary-500 rounded-xl py-4 mb-4 items-center justify-center ${
+              isSubmitting ? "opacity-70" : ""
+            }`}
             activeOpacity={0.8}
+            accessibilityRole="button"
+            accessibilityLabel="Sign Up"
+            accessibilityState={{ disabled: isSubmitting }}
           >
-            <View className="flex-row justify-center items-center">
+            {isSubmitting ? (
+              <ActivityIndicator color="#ffffff" />
+            ) : (
               <Text className="text-black-700 font-rubik-bold text-lg">
-                {isLoading ? "Creating Account..." : "Sign Up"}
+                Sign Up
               </Text>
-            </View>
+            )}
           </TouchableOpacity>
 
           {/* Divider */}
@@ -226,20 +488,30 @@ const SignUp = () => {
           {/* Google Sign Up */}
           <TouchableOpacity
             onPress={handleGoogleSignUp}
-            disabled={!request || isLoading}
+            disabled={!request || isSubmitting}
             className={`flex-row items-center justify-center border border-gray-300 rounded-xl py-3 mb-6 ${
-              isLoading ? "opacity-50" : ""
+              isSubmitting ? "opacity-50" : ""
             }`}
             activeOpacity={0.8}
+            accessibilityRole="button"
+            accessibilityLabel="Continue with Google"
+            accessibilityState={{ disabled: !request || isSubmitting }}
           >
-            <Image
-              source={icons.google as ImageSourcePropType}
-              className="w-6 h-6 mr-2"
-              resizeMode="contain"
-            />
-            <Text className="text-gray-700 font-rubik-medium">
-              Continue with Google
-            </Text>
+            {isSubmitting ? (
+              <ActivityIndicator color="#64748b" />
+            ) : (
+              <>
+                <Image
+                  source={icons.google}
+                  className="w-6 h-6 mr-2"
+                  resizeMode="contain"
+                  accessibilityIgnoresInvertColors
+                />
+                <Text className="text-gray-700 font-rubik-medium">
+                  Continue with Google
+                </Text>
+              </>
+            )}
           </TouchableOpacity>
 
           {/* Login Link */}
@@ -247,8 +519,11 @@ const SignUp = () => {
             <Text className="text-gray-600 font-rubik">
               Already have an account?{" "}
             </Text>
-
-            <TouchableOpacity onPress={() => router.back()}>
+            <TouchableOpacity
+              onPress={() => router.back()}
+              accessibilityRole="button"
+              accessibilityLabel="Login"
+            >
               <Text className="text-primary-500 font-rubik-bold">Login</Text>
             </TouchableOpacity>
           </View>

@@ -1,5 +1,4 @@
 // middlewares/error.js
-const ErrorHandler = require("../utils/error.handler");
 
 module.exports = (err, req, res, next) => {
   let statusCode = err.statusCode || 500;
