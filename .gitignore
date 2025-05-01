@@ -1,0 +1,71 @@
+# Create a comprehensive .gitignore
+cat > .gitignore << 'EOF'
+# General
+.DS_Store
+Thumbs.db
+*.log
+*.tmp
+*.pid
+
+# Environment
+.env
+.env.*
+!.env.example
+.env.local
+.env.development
+.env.test
+.env.production
+
+# Dependencies
+node_modules/
+*/node_modules/
+**/node_modules/
+
+# Build directories
+dist/
+build/
+*/dist/
+*/build/
+*.exe
+*.out
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS metadata
+._*
+.Spotlight-V100
+.Trashes
+
+# Expo/React Native
+.expo/
+.expo-shared/
+web-build/
+metro.config.js
+*.jks
+*.keystore
+
+# Android
+android/.gradle
+android/app/build/
+android/build/
+
+# iOS
+ios/build/
+ios/Pods/
+ios/*.xcworkspace
+ios/.xcode.env
+
+# Backend specific (Python)
+__pycache__/
+*.py[cod]
+*.sqlite3
+*.pyc
+
+# Backend specific (Node)
+package-lock.json
+yarn.lock
+EOF
