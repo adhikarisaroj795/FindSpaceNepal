@@ -26,5 +26,25 @@ class AuthService {
       throw error;
     }
   };
+  static SignIn = async (email, password) => {
+    try {
+      const ExistingUser = await userModel.findOne({
+        email: email,
+      });
+
+      if (!ExistingUser) {
+        throw new ErrorHandler("Invalid Credentials", 404);
+      }
+
+      const isPasswordMatched = await ExistingUser.comparePassword(password);
+      if (!isPasswordMatched) {
+        throw new ErrorHandler("Invalid Credentials", 401);
+      }
+
+      return ExistingUser;
+    } catch (error) {
+      throw error;
+    }
+  };
 }
 module.exports = AuthService;

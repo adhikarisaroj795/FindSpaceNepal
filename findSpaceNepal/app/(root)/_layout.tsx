@@ -1,7 +1,12 @@
 import { Redirect, Slot } from "expo-router";
 import { ActivityIndicator, SafeAreaView } from "react-native";
+import { useAuth } from "@/context/AuthContext";
+import { useState } from "react";
 
 export default function AppLayout() {
+  const { authState, initializeAuth } = useAuth();
+
+  const [isInitialized, setIsinitialized] = useState(false);
   const loading = false;
   const isLogged = false;
 

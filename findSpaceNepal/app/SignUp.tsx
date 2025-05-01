@@ -163,17 +163,18 @@ const SignUp = () => {
           Accept: "application/json",
         },
         body: JSON.stringify({
-          name: form.fullName,
+          fullName: form.fullName,
           email: form.email,
           password: form.password,
         }),
       });
 
       const data = await response.json();
+      console.log(data, "imdata");
 
       if (!response.ok) {
         throw {
-          message: data.message || "Registration failed",
+          message: data.msg || "Registration failed",
           response: {
             status: response.status,
             data,
@@ -188,6 +189,7 @@ const SignUp = () => {
       });
     } catch (err) {
       const error = err as ApiError;
+
       let errorMessage = "An error occurred during registration";
 
       if (error.message) {
@@ -461,7 +463,7 @@ const SignUp = () => {
           <TouchableOpacity
             onPress={handleSignUp}
             disabled={isSubmitting}
-            className={`bg-primary-500 rounded-xl py-4 mb-4 items-center justify-center ${
+            className={`bg-white rounded-xl py-4 mb-4 items-center border border-gray-300 justify-center ${
               isSubmitting ? "opacity-70" : ""
             }`}
             activeOpacity={0.8}
@@ -473,7 +475,7 @@ const SignUp = () => {
               <ActivityIndicator color="#ffffff" />
             ) : (
               <Text className="text-black-700 font-rubik-bold text-lg">
-                Sign Up
+                Sign up
               </Text>
             )}
           </TouchableOpacity>
@@ -489,7 +491,7 @@ const SignUp = () => {
           <TouchableOpacity
             onPress={handleGoogleSignUp}
             disabled={!request || isSubmitting}
-            className={`flex-row items-center justify-center border border-gray-300 rounded-xl py-3 mb-6 ${
+            className={`flex-row items-center  justify-center border border-gray-300 rounded-xl py-3 mb-6 ${
               isSubmitting ? "opacity-50" : ""
             }`}
             activeOpacity={0.8}
