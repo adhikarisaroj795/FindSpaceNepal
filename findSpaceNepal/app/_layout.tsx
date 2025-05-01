@@ -3,6 +3,7 @@ import "./globals.css";
 import { useFonts } from "expo-font";
 import { useEffect } from "react";
 import { hideAsync } from "expo-router/build/utils/splash";
+import { AuthProvider } from "../context/AuthContext"; // ⬅️ Adjust path to your context
 
 export default function RootLayout() {
   const [fontsLoaded] = useFonts({
@@ -16,10 +17,15 @@ export default function RootLayout() {
 
   useEffect(() => {
     if (fontsLoaded) {
-      SplashScreen: hideAsync();
+      hideAsync(); // ✅ corrected: remove the `SplashScreen:` prefix
     }
   }, [fontsLoaded]);
 
   if (!fontsLoaded) return null;
-  return <Stack screenOptions={{ headerShown: false, animation: "fade" }} />;
+
+  return (
+    <AuthProvider>
+      <Stack screenOptions={{ headerShown: false, animation: "fade" }} />
+    </AuthProvider>
+  );
 }

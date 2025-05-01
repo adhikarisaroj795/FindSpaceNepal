@@ -38,6 +38,8 @@ class AuthController {
   static signIn = catchAsync(async (req, res, next) => {
     const { email, password } = req.body;
 
+    console.log(req.body, "igot hirt");
+
     if (!email || email.trim() === "" || !password || password.trim() === "") {
       return next(new ErrorHandler("All Fields are required", 400));
     }

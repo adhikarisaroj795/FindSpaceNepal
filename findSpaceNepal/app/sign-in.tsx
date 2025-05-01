@@ -34,6 +34,8 @@ const SignIn = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
 
+  console.log(email, password, "from signIn");
+
   // Auth context
   const { setAuthState } = useAuth();
 
@@ -98,6 +100,8 @@ const SignIn = () => {
 
       const data = await response.json();
 
+      console.log(response, "imres");
+
       if (!response.ok) {
         throw {
           message: data.msg || "Login failed",
@@ -119,12 +123,15 @@ const SignIn = () => {
           user: data.user,
         });
 
-        // Navigate to home screen
+        // Navigate to home screenarrrr
+        Alert.alert("success login");
+
         router.replace("/");
       } else {
         throw new Error("Authentication data missing in response");
       }
     } catch (error: any) {
+      console.log(error);
       let errorMessage = "Login failed. Please try again.";
 
       if (error.message) {
